@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="독서모임">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#ffffff">
+<title>독서모임</title>
+<style>
+html, body {
+  width: 100%; height: 100%;
+  overflow: hidden;
+  touch-action: pan-y;
+  -webkit-text-size-adjust: none;
+  text-size-adjust: none;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+  background: #fff; color: #111; font-size: 27px;
+}
+.app {
+  width: 100%; height: 100vh; height: 100dvh;
+  display: flex; flex-direction: column;
+  overflow: hidden;
+}
+.header {
+  padding: 24px 20px 12px;
+  padding-top: max(24px, env(safe-area-inset-top));
+  background: #fff; flex-shrink: 0;
+}
+.header h1 { font-size: 42px; font-weight: 700; }
+.header p { font-size: 24px; color: #888; margin-top: 4px; }
+.tab-bar {
+  display: flex; border-bottom: 2px solid #eee;
+  background: #fff; flex-shrink: 0;
+}
+.tab {
+  flex: 1; padding: 16px 0; font-size: 26px; font-weight: 500;
+  text-align: center; color: #bbb; cursor: pointer;
+  border-bottom: 3px solid transparent; margin-bottom: -2px;
+}
+.tab.active { color: #111; border-bottom: 3px solid #111; }
+.sections { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+.section { display: none; padding: 24px 20px 40px; }
+.section.active { display: block; }
+.field { margin-bottom: 22px; }
+.label { font-size: 24px; color: #666; margin-bottom: 10px; font-weight: 600; }
+select, input[type="text"] {
+  width: 100%; padding: 20px 20px; font-size: 27px;
+  border: 2px solid #e0e0e0; border-radius: 12px;
+  background: #fff; color: #111; outline: none;
+  -webkit-appearance: none; appearance: none;
+}
+select:focus, input[type="text"]:focus { border-color: #111; }
+.book-rows { display: flex; flex-direction: column; gap: 12px; margin-bottom: 8px; }
+.book-row { display: flex; align-items: center; gap: 10px; }
+.book-num {
+  width: 32px; height: 32px; border-radius: 50%;
+  background: #f0f0f0; display: flex; align-items: center;
+  justify-content: center; font-size: 24px; font-weight: 700;
+  color: #999; flex-shrink: 0; transition: all 0.2s;
+}
+.book-num.filled { background: #111; color: #fff; }
+.book-input { flex: 1; }
+.book-clear {
+  width: 36px; height: 36px; border-radius: 50%;
+  border: none; background: #f0f0f0; color: #888;
+  cursor: pointer; font-size: 30px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+}
+.book-count { font-size: 24px; color: #aaa; text-align: right; margin-top: 6px; }
+.btn-primary {
+  width: 100%; padding: 24px; font-size: 30px; font-weight: 700;
+  background: #111; color: #fff; border: none; border-radius: 14px;
+  cursor: pointer; margin-top: 8px;
+}
+.btn-primary:disabled { background: #ccc; }
+.card {
+  background: #fff; border: 2px solid #eee;
+  border-radius: 16px; padding: 18px 20px; margin-bottom: 14px;
+}
+.card-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 10px; }
+.card-name { font-size: 27px; font-weight: 700; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.group-badge { font-size: 21px; padding: 3px 10px; border-radius: 20px; font-weight: 600; }
+.badge-서울 { background: #e8f0fe; color: #1a56db; }
+.badge-아산 { background: #e3f9e5; color: #1a7a2e; }
+.badge-세종 { background: #fef3e2; color: #b45309; }
+.month-badge { font-size: 21px; padding: 3px 10px; border-radius: 20px; background: #f0f0f0; color: #555; font-weight: 600; }
+.status-badge { font-size: 21px; padding: 5px 14px; border-radius: 20px; font-weight: 600; flex-shrink: 0; }
+.status-신청 { background: #fef3e2; color: #b45309; }
+.status-구매완료 { background: #e3f9e5; color: #1a7a2e; }
+.status-취소 { background: #f0f0f0; color: #999; }
+.card-books { margin-bottom: 10px; }
+.card-book-item { font-size: 27px; padding: 5px 0; display: flex; gap: 8px; }
+.book-idx { font-size: 21px; color: #aaa; min-width: 16px; padding-top: 3px; }
+.card-meta { font-size: 22px; color: #aaa; display: flex; align-items: center; justify-content: space-between; }
+.btn-cancel {
+  font-size: 22px; padding: 6px 16px; border-radius: 20px;
+  border: 1.5px solid #ffcdd2; background: #fff5f5; color: #e53935; cursor: pointer;
+}
+.filter-row { display: flex; gap: 10px; margin-bottom: 14px; overflow-x: auto; }
+.filter-row::-webkit-scrollbar { display: none; }
+.filter-btn {
+  flex-shrink: 0; font-size: 24px; padding: 9px 20px;
+  border-radius: 24px; border: 2px solid #e0e0e0;
+  background: #fff; color: #888; cursor: pointer; font-weight: 500;
+}
+.filter-btn.active { background: #111; color: #fff; border-color: #111; }
+.month-sel { margin-bottom: 18px; }
+.photo-area {
+  border: 2px dashed #ccc; border-radius: 14px;
+  padding: 36px 20px; text-align: center; color: #aaa;
+  font-size: 27px; cursor: pointer; margin-bottom: 14px;
+}
+.photo-icon { font-size: 72px; margin-bottom: 10px; }
+.photo-preview { width: 100%; border-radius: 12px; margin-bottom: 14px; display: none; max-height: 220px; object-fit: cover; }
+.section-title { font-size: 24px; font-weight: 700; color: #aaa; margin-bottom: 12px; }
+.empty { text-align: center; padding: 60px 20px; color: #bbb; font-size: 27px; }
+.loading { text-align: center; padding: 40px; color: #aaa; font-size: 27px; }
+.toast {
+  position: fixed; bottom: 36px; left: 50%; transform: translateX(-50%);
+  background: #111; color: #fff; padding: 16px 30px;
+  border-radius: 99px; font-size: 26px; font-weight: 500;
+  opacity: 0; transition: opacity 0.3s; pointer-events: none;
+  white-space: nowrap; z-index: 999;
+}
+.toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="header">
+    <h1>📚 독서모임</h1>
+    <p>책 신청 및 수령 인증</p>
+  </div>
+  <div class="tab-bar">
+    <div class="tab active" id="tab-btn-apply">책 신청</div>
+    <div class="tab" id="tab-btn-list">신청 내역</div>
+    <div class="tab" id="tab-btn-confirm">수령 인증</div>
+  </div>
+  <div class="sections">
+
+    <div id="tab-apply" class="section active">
+      <div class="field">
+        <div class="label">신청 월</div>
+        <select id="sel-month">
+          <option value="">— 월 선택 —</option>
+          <option value="1월">1월</option><option value="2월">2월</option><option value="3월">3월</option>
+          <option value="4월">4월</option><option value="5월">5월</option><option value="6월">6월</option>
+          <option value="7월">7월</option><option value="8월">8월</option><option value="9월">9월</option>
+          <option value="10월">10월</option><option value="11월">11월</option><option value="12월">12월</option>
+        </select>
+      </div>
+      <div class="field">
+        <div class="label">회원 이름</div>
+        <select id="sel-member">
+          <option value="">— 이름 선택 —</option>
+          <optgroup label="📍 서울 사무소">
+            <option value="김용식|서울">김용식</option><option value="이수영|서울">이수영</option>
+            <option value="이준형|서울">이준형</option><option value="김은희|서울">김은희</option>
+            <option value="이가영|서울">이가영</option><option value="진영진|서울">진영진</option>
+            <option value="위아형|서울">위아형</option>
+          </optgroup>
+          <optgroup label="🏭 아산 공장">
+            <option value="김호식|아산">김호식</option><option value="나상악|아산">나상악</option>
+            <option value="이혜정|아산">이혜정</option><option value="최정용|아산">최정용</option>
+            <option value="김연교|아산">김연교</option>
+          </optgroup>
+          <optgroup label="🌿 세종">
+            <option value="유수연|세종">유수연</option>
+          </optgroup>
+        </select>
+      </div>
+      <div class="field">
+        <div class="label">책 제목 (최대 4권)</div>
+        <div class="book-rows">
+          <div class="book-row"><div class="book-num" id="num-1">1</div><input type="text" class="book-input" id="book-1" placeholder="책 제목 입력"><button class="book-clear" id="clear-1">×</button></div>
+          <div class="book-row"><div class="book-num" id="num-2">2</div><input type="text" class="book-input" id="book-2" placeholder="책 제목 입력"><button class="book-clear" id="clear-2">×</button></div>
+          <div class="book-row"><div class="book-num" id="num-3">3</div><input type="text" class="book-input" id="book-3" placeholder="책 제목 입력"><button class="book-clear" id="clear-3">×</button></div>
+          <div class="book-row"><div class="book-num" id="num-4">4</div><input type="text" class="book-input" id="book-4" placeholder="책 제목 입력"><button class="book-clear" id="clear-4">×</button></div>
+        </div>
+        <div class="book-count" id="book-count">0 / 4권 입력</div>
+      </div>
+      <button class="btn-primary" id="btn-apply">신청 완료</button>
+    </div>
+
+    <div id="tab-list" class="section">
+      <div class="filter-row">
+        <button class="filter-btn active" data-group="전체">전체</button>
+        <button class="filter-btn" data-group="서울">서울</button>
+        <button class="filter-btn" data-group="아산">아산</button>
+        <button class="filter-btn" data-group="세종">세종</button>
+      </div>
+      <div class="month-sel">
+        <select id="sel-list-month">
+          <option value="">— 전체 월 —</option>
+          <option value="1월">1월</option><option value="2월">2월</option><option value="3월">3월</option>
+          <option value="4월">4월</option><option value="5월">5월</option><option value="6월">6월</option>
+          <option value="7월">7월</option><option value="8월">8월</option><option value="9월">9월</option>
+          <option value="10월">10월</option><option value="11월">11월</option><option value="12월">12월</option>
+        </select>
+      </div>
+      <div id="list-container"><div class="loading">불러오는 중...</div></div>
+    </div>
+
+    <div id="tab-confirm" class="section">
+      <div class="field">
+        <div class="label">신청 월</div>
+        <select id="sel-confirm-month">
+          <option value="">— 월 선택 —</option>
+          <option value="1월">1월</option><option value="2월">2월</option><option value="3월">3월</option>
+          <option value="4월">4월</option><option value="5월">5월</option><option value="6월">6월</option>
+          <option value="7월">7월</option><option value="8월">8월</option><option value="9월">9월</option>
+          <option value="10월">10월</option><option value="11월">11월</option><option value="12월">12월</option>
+        </select>
+      </div>
+      <div class="field">
+        <div class="label">회원 이름</div>
+        <select id="sel-confirm-member">
+          <option value="">— 이름 선택 —</option>
+          <optgroup label="📍 서울 사무소">
+            <option value="김용식|서울">김용식</option><option value="이수영|서울">이수영</option>
+            <option value="이준형|서울">이준형</option><option value="김은희|서울">김은희</option>
+            <option value="이가영|서울">이가영</option><option value="진영진|서울">진영진</option>
+            <option value="위아형|서울">위아형</option>
+          </optgroup>
+          <optgroup label="🏭 아산 공장">
+            <option value="김호식|아산">김호식</option><option value="나상악|아산">나상악</option>
+            <option value="이혜정|아산">이혜정</option><option value="최정용|아산">최정용</option>
+            <option value="김연교|아산">김연교</option>
+          </optgroup>
+          <optgroup label="🌿 세종">
+            <option value="유수연|세종">유수연</option>
+          </optgroup>
+        </select>
+      </div>
+      <div class="field">
+        <div class="label">신청 건 선택</div>
+        <select id="sel-confirm-book">
+          <option value="">— 먼저 월과 이름을 선택하세요 —</option>
+        </select>
+      </div>
+      <div class="field">
+        <div class="label">수령 사진</div>
+        <div class="photo-area" id="photo-area">
+          <div class="photo-icon">📷</div>
+          탭하여 사진 업로드
+        </div>
+        <input type="file" id="file-input" accept="image/*" capture="environment" style="display:none">
+        <img id="photo-preview" class="photo-preview" alt="수령 사진">
+      </div>
+      <button class="btn-primary" id="btn-confirm">구매 완료 인증</button>
+    </div>
+
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+var records = [];
+var currentGroup = '전체';
+var photoData = null;
+
+function showToast(msg) {
+  var t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(function() { t.classList.remove('show'); }, 2500);
+}
+
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach(function(t) { t.classList.remove('active'); });
+  document.getElementById('tab-btn-' + name).classList.add('active');
+  document.querySelectorAll('.section').forEach(function(s) { s.classList.remove('active'); });
+  document.getElementById('tab-' + name).classList.add('active');
+  document.querySelector('.sections').scrollTop = 0;
+  if (name === 'list') loadList();
+}
+
+document.getElementById('tab-btn-apply').addEventListener('click', function() { switchTab('apply'); });
+document.getElementById('tab-btn-list').addEventListener('click', function() { switchTab('list'); });
+document.getElementById('tab-btn-confirm').addEventListener('click', function() { switchTab('confirm'); });
+
+function updateNums() {
+  var count = 0;
+  for (var i = 1; i <= 4; i++) {
+    var val = document.getElementById('book-' + i).value.trim();
+    document.getElementById('num-' + i).classList.toggle('filled', val.length > 0);
+    if (val) count++;
+  }
+  document.getElementById('book-count').textContent = count + ' / 4권 입력';
+}
+
+for (var bi = 1; bi <= 4; bi++) {
+  (function(n) {
+    document.getElementById('book-' + n).addEventListener('input', updateNums);
+    document.getElementById('clear-' + n).addEventListener('click', function() {
+      document.getElementById('book-' + n).value = '';
+      updateNums();
+    });
+  })(bi);
+}
+
+(function() {
+  var m = (new Date().getMonth() + 1) + '월';
+  ['sel-month','sel-confirm-month','sel-list-month'].forEach(function(id) {
+    var sel = document.getElementById(id);
+    for (var i = 0; i < sel.options.length; i++) {
+      if (sel.options[i].value === m) { sel.selectedIndex = i; break; }
+    }
+  });
+})();
+
+document.getElementById('btn-apply').addEventListener('click', function() {
+  var month = document.getElementById('sel-month').value;
+  var mv = document.getElementById('sel-member').value;
+  if (!month) { showToast('월을 선택해 주세요'); return; }
+  if (!mv) { showToast('이름을 선택해 주세요'); return; }
+  var books = [];
+  for (var i = 1; i <= 4; i++) {
+    var v = document.getElementById('book-' + i).value.trim();
+    if (v) books.push(v);
+  }
+  if (books.length === 0) { showToast('책 제목을 입력해 주세요'); return; }
+  var parts = mv.split('|');
+  var btn = document.getElementById('btn-apply');
+  btn.disabled = true; btn.textContent = '전송 중...';
+  google.script.run
+    .withSuccessHandler(function() {
+      document.getElementById('sel-member').value = '';
+      for (var i = 1; i <= 4; i++) document.getElementById('book-' + i).value = '';
+      updateNums();
+      btn.disabled = false; btn.textContent = '신청 완료';
+      showToast('✓ ' + month + ' 신청 완료!');
+      setTimeout(function() { switchTab('list'); }, 900);
+    })
+    .withFailureHandler(function(err) {
+      btn.disabled = false; btn.textContent = '신청 완료';
+      showToast('오류: ' + err.message);
+    })
+    .processRequest({ type:'신청', id:String(Date.now()), name:parts[0], group:parts[1], month:month, books:books, date:new Date().toLocaleDateString('ko-KR') });
+});
+
+function loadList() {
+  document.getElementById('list-container').innerHTML = '<div class="loading">불러오는 중...</div>';
+  google.script.run
+    .withSuccessHandler(function(res) { records = res || []; renderList(); })
+    .withFailureHandler(function() {
+      document.getElementById('list-container').innerHTML = '<div class="empty">⚠️ 불러오지 못했습니다</div>';
+    })
+    .getRecords();
+}
+
+function renderList() {
+  var monthFilter = document.getElementById('sel-list-month').value;
+  var filtered = records.slice();
+  if (currentGroup !== '전체') filtered = filtered.filter(function(r) { return r.group === currentGroup; });
+  if (monthFilter) filtered = filtered.filter(function(r) { return r.month === monthFilter; });
+  var container = document.getElementById('list-container');
+  if (filtered.length === 0) { container.innerHTML = '<div class="empty">📭 신청 내역이 없습니다</div>'; return; }
+  var groupOrder = ['서울','아산','세종'];
+  var groupLabel = {'서울':'📍 서울 사무소','아산':'🏭 아산 공장','세종':'🌿 세종'};
+  var grouped = {};
+  filtered.forEach(function(r) { if (!grouped[r.group]) grouped[r.group] = []; grouped[r.group].push(r); });
+  var html = '';
+  groupOrder.forEach(function(g) {
+    if (!grouped[g]) return;
+    html += '<div class="section-title">' + groupLabel[g] + '</div>';
+    grouped[g].forEach(function(r) {
+      var sc = r.status === '구매완료' ? 'status-구매완료' : r.status === '취소' ? 'status-취소' : 'status-신청';
+      var sl = r.status === '구매완료' ? '✓ 수령완료' : r.status === '취소' ? '취소됨' : '신청 중';
+      var bookHtml = r.books.map(function(b, i) { return '<div class="card-book-item"><span class="book-idx">' + (i+1) + '</span>' + b + '</div>'; }).join('');
+      var mb = r.month ? '<span class="month-badge">' + r.month + '</span>' : '';
+      var cancelBtn = r.status === '신청' ? '<button class="btn-cancel" data-id="' + r.id + '">신청 취소</button>' : '';
+      html += '<div class="card"><div class="card-header"><div class="card-name">' + r.name + '<span class="group-badge badge-' + r.group + '">' + r.group + '</span>' + mb + '</div><span class="status-badge ' + sc + '">' + sl + '</span></div><div class="card-books">' + bookHtml + '</div><div class="card-meta"><span>' + r.date + ' · ' + r.books.length + '권</span>' + cancelBtn + '</div></div>';
+    });
+  });
+  container.innerHTML = html;
+  container.querySelectorAll('.btn-cancel').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      if (!confirm('신청을 취소하시겠습니까?')) return;
+      google.script.run
+        .withSuccessHandler(function() { showToast('취소되었습니다'); loadList(); })
+        .withFailureHandler(function(err) { showToast('오류: ' + err.message); })
+        .processRequest({ type:'취소', id: btn.getAttribute('data-id') });
+    });
+  });
+}
+
+document.getElementById('sel-list-month').addEventListener('change', renderList);
+document.querySelectorAll('.filter-btn').forEach(function(btn) {
+  btn.addEventListener('click', function() {
+    currentGroup = btn.getAttribute('data-group');
+    document.querySelectorAll('.filter-btn').forEach(function(b) { b.classList.remove('active'); });
+    btn.classList.add('active');
+    renderList();
+  });
+});
+
+function loadMyBooks() {
+  var month = document.getElementById('sel-confirm-month').value;
+  var mv = document.getElementById('sel-confirm-member').value;
+  var sel = document.getElementById('sel-confirm-book');
+  if (!month || !mv) { sel.innerHTML = '<option>— 먼저 월과 이름을 선택하세요 —</option>'; return; }
+  var name = mv.split('|')[0];
+  google.script.run
+    .withSuccessHandler(function(res) {
+      var myRecs = (res || []).filter(function(r) { return r.name === name && r.month === month && r.status === '신청'; });
+      if (myRecs.length === 0) {
+        sel.innerHTML = '<option value="">해당 월 신청 건이 없습니다</option>';
+      } else {
+        sel.innerHTML = '<option value="">— 신청 건 선택 —</option>' + myRecs.map(function(r) {
+          return '<option value="' + r.id + '">' + r.month + ' · ' + r.books[0] + (r.books.length > 1 ? ' 외 ' + (r.books.length-1) + '권' : '') + '</option>';
+        }).join('');
+      }
+    }).getRecords();
+}
+
+document.getElementById('sel-confirm-month').addEventListener('change', loadMyBooks);
+document.getElementById('sel-confirm-member').addEventListener('change', loadMyBooks);
+
+document.getElementById('photo-area').addEventListener('click', function() {
+  document.getElementById('file-input').click();
+});
+
+document.getElementById('file-input').addEventListener('change', function(e) {
+  var file = e.target.files[0];
+  if (!file) return;
+  var canvas = document.createElement('canvas');
+  var ctx = canvas.getContext('2d');
+  var img = new Image();
+  var reader = new FileReader();
+  reader.onload = function(ev) {
+    img.onload = function() {
+      var maxW = 1200, maxH = 1200, w = img.width, h = img.height;
+      if (w > maxW) { h = h * maxW / w; w = maxW; }
+      if (h > maxH) { w = w * maxH / h; h = maxH; }
+      canvas.width = w; canvas.height = h;
+      ctx.drawImage(img, 0, 0, w, h);
+      photoData = canvas.toDataURL('image/jpeg', 0.7);
+      var preview = document.getElementById('photo-preview');
+      preview.src = photoData;
+      preview.style.display = 'block';
+    };
+    img.src = ev.target.result;
+  };
+  reader.readAsDataURL(file);
+});
+
+document.getElementById('btn-confirm').addEventListener('click', function() {
+  var month = document.getElementById('sel-confirm-month').value;
+  var mv = document.getElementById('sel-confirm-member').value;
+  var bid = document.getElementById('sel-confirm-book').value;
+  if (!month) { showToast('월을 선택해 주세요'); return; }
+  if (!mv) { showToast('이름을 선택해 주세요'); return; }
+  if (!bid) { showToast('신청 건을 선택해 주세요'); return; }
+  if (!photoData) { showToast('사진을 업로드해 주세요'); return; }
+  var parts = mv.split('|');
+  var btn = document.getElementById('btn-confirm');
+  btn.disabled = true; btn.textContent = '사진 업로드 중...';
+  google.script.run
+    .withSuccessHandler(function() {
+      document.getElementById('sel-confirm-member').value = '';
+      document.getElementById('sel-confirm-month').value = '';
+      document.getElementById('sel-confirm-book').innerHTML = '<option>— 먼저 월과 이름을 선택하세요 —</option>';
+      document.getElementById('photo-preview').style.display = 'none';
+      document.getElementById('file-input').value = '';
+      photoData = null;
+      btn.disabled = false; btn.textContent = '구매 완료 인증';
+      showToast('✓ 인증 완료!');
+      setTimeout(function() { switchTab('list'); }, 900);
+    })
+    .withFailureHandler(function(err) {
+      btn.disabled = false; btn.textContent = '구매 완료 인증';
+      showToast('오류: ' + err.message);
+    })
+    .processRequest({ type:'구매완료', id:bid, name:parts[0], group:parts[1], month:month, confirmDate:new Date().toLocaleDateString('ko-KR'), photoBase64:photoData, fileName:parts[0]+'_'+month+'_'+bid+'.jpg' });
+});
+</script>
+</body>
+</html>
