@@ -329,30 +329,30 @@ document.getElementById('btn-apply').addEventListener('click', function() {
   var parts = mv.split('|');
   var btn = document.getElementById('btn-apply');
   btn.disabled = true; btn.textContent = '전송 중...';
-  google.script.run
-    .withSuccessHandler(function() {
-      document.getElementById('sel-member').value = '';
-      for (var i = 1; i <= 4; i++) document.getElementById('book-' + i).value = '';
-      updateNums();
-      btn.disabled = false; btn.textContent = '신청 완료';
-      showToast('✓ ' + month + ' 신청 완료!');
-      setTimeout(function() { switchTab('list'); }, 900);
-    })
-    .withFailureHandler(function(err) {
-      btn.disabled = false; btn.textContent = '신청 완료';
-      showToast('오류: ' + err.message);
-    })
-    .processRequest({ type:'신청', id:String(Date.now()), name:parts[0], group:parts[1], month:month, books:books, date:new Date().toLocaleDateString('ko-KR') });
+  fetch('https://script.google.com/macros/s/AKfycbw6itcmgXa9W9ZwieFHa9SvAyGby7E-4R7XjFMAcl1nhas8IEmnJDgnmi21gNw6Oy3c/exec', {
+    method: 'POST', mode: 'no-cors',
+    body: JSON.stringify({ type:'신청', id:String(Date.now()), name:parts[0], group:parts[1], month:month, books:books, date:new Date().toLocaleDateString('ko-KR') })
+  }).then(function() {
+    document.getElementById('sel-member').value = '';
+    for (var i = 1; i <= 4; i++) document.getElementById('book-' + i).value = '';
+    updateNums();
+    btn.disabled = false; btn.textContent = '신청 완료';
+    showToast('✓ ' + month + ' 신청 완료!');
+    setTimeout(function() { switchTab('list'); }, 900);
+  }).catch(function(err) {
+    btn.disabled = false; btn.textContent = '신청 완료';
+    showToast('오류가 발생했습니다');
+  });
 });
 
 function loadList() {
   document.getElementById('list-container').innerHTML = '<div class="loading">불러오는 중...</div>';
-  google.script.run
-    .withSuccessHandler(function(res) { records = res || []; renderList(); })
-    .withFailureHandler(function() {
+  fetch('https://script.google.com/macros/s/AKfycbw6itcmgXa9W9ZwieFHa9SvAyGby7E-4R7XjFMAcl1nhas8IEmnJDgnmi21gNw6Oy3c/exec?action=조회')
+    .then(function(r){return r.json();})
+    .then(function(res){ records = res.data || []; renderList(); })
+    .catch(function(){
       document.getElementById('list-container').innerHTML = '<div class="empty">⚠️ 불러오지 못했습니다</div>';
-    })
-    .getRecords();
+    });
 }
 
 function renderList() {
@@ -383,10 +383,11 @@ function renderList() {
   container.querySelectorAll('.btn-cancel').forEach(function(btn) {
     btn.addEventListener('click', function() {
       if (!confirm('신청을 취소하시겠습니까?')) return;
-      google.script.run
-        .withSuccessHandler(function() { showToast('취소되었습니다'); loadList(); })
-        .withFailureHandler(function(err) { showToast('오류: ' + err.message); })
-        .processRequest({ type:'취소', id: btn.getAttribute('data-id') });
+      fetch('https://script.google.com/macros/s/AKfycbw6itcmgXa9W9ZwieFHa9SvAyGby7E-4R7XjFMAcl1nhas8IEmnJDgnmi21gNw6Oy3c/exec', {
+        method: 'POST', mode: 'no-cors',
+        body: JSON.stringify({ type:'취소', id: btn.getAttribute('data-id') })
+      }).then(function() { showToast('취소되었습니다'); setTimeout(function(){ loadList(); }, 1000); })
+        .catch(function() { showToast('오류가 발생했습니다'); });
     });
   });
 }
@@ -407,9 +408,10 @@ function loadMyBooks() {
   var sel = document.getElementById('sel-confirm-book');
   if (!month || !mv) { sel.innerHTML = '<option>— 먼저 월과 이름을 선택하세요 —</option>'; return; }
   var name = mv.split('|')[0];
-  google.script.run
-    .withSuccessHandler(function(res) {
-      var myRecs = (res || []).filter(function(r) { return r.name === name && r.month === month && r.status === '신청'; });
+  fetch('https://script.google.com/macros/s/AKfycbw6itcmgXa9W9ZwieFHa9SvAyGby7E-4R7XjFMAcl1nhas8IEmnJDgnmi21gNw6Oy3c/exec?action=조회')
+    .then(function(r){return r.json();})
+    .then(function(res) {
+      var myRecs = (res.data || []).filter(function(r) { return r.name === name && r.month === month && r.status === '신청'; });
       if (myRecs.length === 0) {
         sel.innerHTML = '<option value="">해당 월 신청 건이 없습니다</option>';
       } else {
@@ -417,7 +419,7 @@ function loadMyBooks() {
           return '<option value="' + r.id + '">' + r.month + ' · ' + r.books[0] + (r.books.length > 1 ? ' 외 ' + (r.books.length-1) + '권' : '') + '</option>';
         }).join('');
       }
-    }).getRecords();
+    });
 }
 
 document.getElementById('sel-confirm-month').addEventListener('change', loadMyBooks);
@@ -462,23 +464,23 @@ document.getElementById('btn-confirm').addEventListener('click', function() {
   var parts = mv.split('|');
   var btn = document.getElementById('btn-confirm');
   btn.disabled = true; btn.textContent = '사진 업로드 중...';
-  google.script.run
-    .withSuccessHandler(function() {
-      document.getElementById('sel-confirm-member').value = '';
-      document.getElementById('sel-confirm-month').value = '';
-      document.getElementById('sel-confirm-book').innerHTML = '<option>— 먼저 월과 이름을 선택하세요 —</option>';
-      document.getElementById('photo-preview').style.display = 'none';
-      document.getElementById('file-input').value = '';
-      photoData = null;
-      btn.disabled = false; btn.textContent = '구매 완료 인증';
-      showToast('✓ 인증 완료!');
-      setTimeout(function() { switchTab('list'); }, 900);
-    })
-    .withFailureHandler(function(err) {
-      btn.disabled = false; btn.textContent = '구매 완료 인증';
-      showToast('오류: ' + err.message);
-    })
-    .processRequest({ type:'구매완료', id:bid, name:parts[0], group:parts[1], month:month, confirmDate:new Date().toLocaleDateString('ko-KR'), photoBase64:photoData, fileName:parts[0]+'_'+month+'_'+bid+'.jpg' });
+  fetch('https://script.google.com/macros/s/AKfycbw6itcmgXa9W9ZwieFHa9SvAyGby7E-4R7XjFMAcl1nhas8IEmnJDgnmi21gNw6Oy3c/exec', {
+    method: 'POST', mode: 'no-cors',
+    body: JSON.stringify({ type:'구매완료', id:bid, name:parts[0], group:parts[1], month:month, confirmDate:new Date().toLocaleDateString('ko-KR'), photoBase64:photoData, fileName:parts[0]+'_'+month+'_'+bid+'.jpg' })
+  }).then(function() {
+    document.getElementById('sel-confirm-member').value = '';
+    document.getElementById('sel-confirm-month').value = '';
+    document.getElementById('sel-confirm-book').innerHTML = '<option>— 먼저 월과 이름을 선택하세요 —</option>';
+    document.getElementById('photo-preview').style.display = 'none';
+    document.getElementById('file-input').value = '';
+    photoData = null;
+    btn.disabled = false; btn.textContent = '구매 완료 인증';
+    showToast('✓ 인증 완료!');
+    setTimeout(function() { switchTab('list'); }, 900);
+  }).catch(function() {
+    btn.disabled = false; btn.textContent = '구매 완료 인증';
+    showToast('오류가 발생했습니다');
+  });
 });
 </script>
 </body>
